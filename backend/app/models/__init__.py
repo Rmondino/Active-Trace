@@ -11,8 +11,14 @@ from app.models.rol import Rol
 from app.models.rol_permiso import RolPermiso
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.models.carrera import Carrera
+from app.models.cohorte import Cohorte
+from app.models.materia import Materia
 
 __all__ = [
+    "Carrera",
+    "Cohorte",
+    "Materia",
     "PasswordResetToken",
     "Permiso",
     "RefreshToken",
