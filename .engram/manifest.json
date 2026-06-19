@@ -51,7 +51,7 @@
     },
     {
       "id": "3cb225c8",
-      "created_by": "brian",
+      "created_by": "sergio",
       "created_at": "2026-06-19T04:17:01Z",
       "sessions": 0,
       "memories": 0,
@@ -59,7 +59,7 @@
     },
     {
       "id": "c503a1e8",
-      "created_by": "brian",
+      "created_by": "sergio",
       "created_at": "2026-06-19T04:40:39Z",
       "sessions": 0,
       "memories": 2,
@@ -67,7 +67,7 @@
     },
     {
       "id": "eb0f1dde",
-      "created_by": "brian",
+      "created_by": "ramiro",
       "created_at": "2026-06-19T05:12:45Z",
       "sessions": 0,
       "memories": 0,
@@ -75,7 +75,7 @@
     },
     {
       "id": "96e182d4",
-      "created_by": "brian",
+      "created_by": "ramiro",
       "created_at": "2026-06-19T05:47:59Z",
       "sessions": 1,
       "memories": 1,
@@ -83,7 +83,7 @@
     },
     {
       "id": "edd7c0e3",
-      "created_by": "brian",
+      "created_by": "juan",
       "created_at": "2026-06-19T06:12:19Z",
       "sessions": 4,
       "memories": 5,
@@ -91,7 +91,7 @@
     },
     {
       "id": "5864b9d5",
-      "created_by": "brian",
+      "created_by": "juan",
       "created_at": "2026-06-19T06:16:33Z",
       "sessions": 0,
       "memories": 1,
@@ -99,7 +99,7 @@
     },
     {
       "id": "9a14065c",
-      "created_by": "brian",
+      "created_by": "sergio",
       "created_at": "2026-06-19T06:40:39Z",
       "sessions": 2,
       "memories": 3,
@@ -107,7 +107,7 @@
     },
     {
       "id": "7c3845fb",
-      "created_by": "brian",
+      "created_by": "ramiro",
       "created_at": "2026-06-19T08:10:45Z",
       "sessions": 1,
       "memories": 5,
@@ -115,7 +115,7 @@
     },
     {
       "id": "85f94ade",
-      "created_by": "brian",
+      "created_by": "ramiro",
       "created_at": "2026-06-19T08:19:02Z",
       "sessions": 0,
       "memories": 0,
@@ -123,7 +123,7 @@
     },
     {
       "id": "f3f0b65f",
-      "created_by": "brian",
+      "created_by": "juan",
       "created_at": "2026-06-19T08:39:09Z",
       "sessions": 0,
       "memories": 0,
