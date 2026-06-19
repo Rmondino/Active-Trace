@@ -15,11 +15,16 @@ from app.models.carrera import Carrera
 from app.models.cohorte import Cohorte
 from app.models.materia import Materia
 from app.models.asignacion import Asignacion
+from app.models.version_padron import VersionPadron
+from app.models.entrada_padron import EntradaPadron
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "Asignacion",
+    "AuditLog",
     "Carrera",
     "Cohorte",
+    "EntradaPadron",
     "Materia",
     "PasswordResetToken",
     "Permiso",
@@ -31,4 +36,5 @@ __all__ = [
     "TenantScopedMixin",
     "TimeStampedMixin",
     "User",
+    "VersionPadron",
 ]

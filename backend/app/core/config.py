@@ -52,6 +52,16 @@ class Settings(BaseSettings):
         description="JWT access token expiration in minutes",
     )
 
+    # ── Moodle Web Services (optional) ──
+    MOODLE_BASE_URL: str | None = Field(
+        default=None,
+        description="Base URL for Moodle Web Services",
+    )
+    MOODLE_TOKEN: str | None = Field(
+        default=None,
+        description="Web service token for Moodle API",
+    )
+
     # ── OpenTelemetry (optional) ──
     OTEL_SERVICE_NAME: str | None = Field(
         default=None,
