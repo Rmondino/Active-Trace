@@ -1,3 +1,5 @@
+Link del video Active trace "https://youtu.be/nFYeSiHCeLA"
+
 # activia-trace
 
 Plataforma de gestión académica y trazabilidad multi-tenant. Opera como capa de orquestación sobre Moodle: consolida calificaciones, detecta atrasos, gestiona comunicación saliente con aprobación, equipos docentes, encuentros, coloquios, liquidaciones de honorarios y auditoría completa.
