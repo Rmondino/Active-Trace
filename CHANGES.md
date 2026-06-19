@@ -26,7 +26,7 @@ C-01 foundation-setup (infra, Docker, FastAPI skel, DB inicial, OTel)
             ├── C-05 audit-log (E-AUD append-only, middleware, impersonación)
             ├── C-06 estructura-academica (Carrera, Cohorte, Materia, ABM)
             │   ├── C-07 usuarios-y-asignaciones (Usuario PII cifrada, Asignacion, vigencia)
-            │   │   ├── C-08 equipos-docentes (mis-equipos, masiva, clonar, exportar)
+            │   │   ├── [x] C-08 equipos-docentes (mis-equipos, masiva, clonar, exportar)
             │   │   ├── C-09 padron-ingesta-moodle (VersionPadron, import xlsx/csv, Moodle WS)
             │   │   │   └── C-10 calificaciones-y-umbral (Calificacion, UmbralMateria, import)
             │   │   │       └── C-11 analisis-atrasados-reportes (atrasados, ranking, notas finales)
@@ -274,7 +274,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
 > Todos dependen de `C-07` (usuarios + asignaciones). Se pueden repartir entre los 3 agentes en paralelo.
 
 ### [C-08] `equipos-docentes`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Vistas/endpoints sobre `Asignacion`: mis-equipos del docente (F4.2), gestión de asignaciones (F4.3).
   - Asignación masiva (F4.4): bloque docentes × materia × carrera × cohorte × rol con vigencia.
