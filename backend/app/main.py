@@ -85,6 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.routers.guardias import router as guardias_router
     from app.routers.coloquios import router as coloquios_router
     from app.routers.avisos import router as avisos_router
+    from app.routers.tareas import router as tareas_router
 
     app.include_router(health_router)
     app.include_router(auth_router)
@@ -102,5 +103,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(guardias_router)
     app.include_router(coloquios_router)
     app.include_router(avisos_router)
+    app.include_router(tareas_router)
 
     return app

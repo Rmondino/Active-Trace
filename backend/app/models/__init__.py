@@ -29,6 +29,8 @@ from app.models.acknowledgment_aviso import AcknowledgmentAviso
 from app.models.evaluacion import Evaluacion
 from app.models.reserva_evaluacion import ReservaEvaluacion
 from app.models.resultado_evaluacion import ResultadoEvaluacion
+from app.models.tarea import Tarea, validar_transicion_tarea, VALID_TRANSITIONS_TAREA
+from app.models.comentario_tarea import ComentarioTarea
 
 __all__ = [
     "Asignacion",
@@ -59,4 +61,8 @@ __all__ = [
     "ResultadoEvaluacion",
     "Aviso",
     "AcknowledgmentAviso",
+    "Tarea",
+    "ComentarioTarea",
+    "validar_transicion_tarea",
+    "VALID_TRANSITIONS_TAREA",
 ]

@@ -96,6 +96,14 @@
       "sessions": 0,
       "memories": 1,
       "prompts": 1
+    },
+    {
+      "id": "9a14065c",
+      "created_by": "brian",
+      "created_at": "2026-06-19T06:40:39Z",
+      "sessions": 2,
+      "memories": 3,
+      "prompts": 2
     }
   ]
 }
