@@ -1,0 +1,126 @@
+"""FastAPI application factory for activia-trace.
+
+Uses a factory pattern (create_app) so tests can inject Settings.
+The module-level 'app' is created lazily for uvicorn/ASGI serving.
+"""
+
+import logging
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+from app.core.config import Settings
+from app.core.database import close_engine, init_engine
+
+logger = logging.getLogger(__name__)
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Create and configure the FastAPI application.
+
+    Args:
+        settings: Optional Settings instance. If omitted, loads from environment.
+
+    Returns:
+        Configured FastAPI application ready to serve requests.
+    """
+    resolved_settings = settings if settings is not None else Settings()  # type: ignore[call-arg]
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+        """Application lifespan: init engine on start, dispose on shutdown."""
+        from app.core.logging import configure_json_logging  # noqa: PLC0415
+        from app.core.observability import init_opentelemetry  # noqa: PLC0415
+
+        # Configure observability
+        configure_json_logging()
+        init_opentelemetry(resolved_settings)
+
+        # Initialize database engine
+        logger.info("Initializing database engine...")
+        init_engine(resolved_settings)
+        logger.info("Database engine initialized")
+
+        yield
+
+        # Shutdown
+        logger.info("Shutting down database engine...")
+        await close_engine()
+        logger.info("Database engine disposed")
+
+    app = FastAPI(
+        title="activia-trace",
+        description="Plataforma de gestión académica y trazabilidad multi-tenant",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
+    # CORS middleware (before routers so preflight is handled)
+    from fastapi.middleware.cors import CORSMiddleware  # noqa: PLC0415
+
+    origins = resolved_settings.cors_origins.split(",")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Register routers
+    from app.api.v1.routers.health import router as health_router
+    from app.routers.auth import router as auth_router
+    from app.routers.admin.estructura import router as estructura_router
+    from app.routers.admin.usuarios import router as usuarios_router
+    from app.routers.asignaciones import router as asignaciones_router
+    from app.routers.usuarios_me import router as usuarios_me_router
+    from app.routers.padron import router as padron_router
+    from app.routers.calificaciones import router as calificaciones_router
+    from app.routers.comunicaciones import router as comunicaciones_router
+    from app.routers.analisis import router as analisis_router
+    from app.routers.equipos import router as equipos_router
+    from app.routers.umbral import router as umbral_router
+    from app.routers.encuentros import router as encuentros_router
+    from app.routers.guardias import router as guardias_router
+    from app.routers.coloquios import router as coloquios_router
+    from app.routers.avisos import router as avisos_router
+    from app.routers.tareas import router as tareas_router
+    from app.routers.impersonacion import router as impersonacion_router
+    from app.routers.admin.auditoria import router as auditoria_router
+    from app.routers.programas import router as programas_router
+    from app.routers.fechas_academicas import router as fechas_academicas_router
+    from app.routers.inbox import router as inbox_router
+    from app.routers.auditoria import router as auditoria_metrics_router
+    from app.routers.salarios import router as salarios_router
+    from app.routers.liquidaciones import router as liquidaciones_router
+    from app.routers.facturas import router as facturas_router
+
+    app.include_router(health_router)
+    app.include_router(auth_router)
+    app.include_router(impersonacion_router)
+    app.include_router(estructura_router)
+    app.include_router(usuarios_router)
+    app.include_router(asignaciones_router)
+    app.include_router(usuarios_me_router)
+    app.include_router(padron_router)
+    app.include_router(calificaciones_router)
+    app.include_router(comunicaciones_router)
+    app.include_router(analisis_router)
+    app.include_router(equipos_router)
+    app.include_router(umbral_router)
+    app.include_router(encuentros_router)
+    app.include_router(guardias_router)
+    app.include_router(coloquios_router)
+    app.include_router(avisos_router)
+    app.include_router(tareas_router)
+    app.include_router(auditoria_router)
+    app.include_router(programas_router)
+    app.include_router(fechas_academicas_router)
+    app.include_router(inbox_router)
+    app.include_router(auditoria_metrics_router)
+    app.include_router(salarios_router)
+    app.include_router(liquidaciones_router)
+    app.include_router(facturas_router)
+
+    return app
