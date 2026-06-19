@@ -104,19 +104,25 @@ async def get_me_asignaciones(
         current_user.tenant_id, current_user.id, solo_vigentes=True
     )
 
-    return [
-        {
+    def _to_response(a) -> dict:
+        materia_nombre = a.materia.nombre if a.materia else ""
+        carrera_nombre = a.carrera.nombre if a.carrera else ""
+        cohorte_nombre = a.cohorte.nombre if a.cohorte else ""
+        return {
             "id": a.id,
             "usuario_id": a.usuario_id,
             "rol": a.rol,
             "materia_id": a.materia_id,
+            "materia_nombre": materia_nombre,
             "carrera_id": a.carrera_id,
+            "carrera_nombre": carrera_nombre,
             "cohorte_id": a.cohorte_id,
+            "cohorte_nombre": cohorte_nombre,
             "comisiones": a.comisiones,
             "responsable_id": a.responsable_id,
             "desde": str(a.desde),
             "hasta": str(a.hasta) if a.hasta else None,
             "estado_vigencia": _compute_estado_vigencia(a.desde, a.hasta),
         }
-        for a in asignaciones
-    ]
+
+    return [_to_response(a) for a in asignaciones]

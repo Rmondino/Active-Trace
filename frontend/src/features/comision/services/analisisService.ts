@@ -9,7 +9,7 @@ export const analisisService = {
     api.get<RankingItem[]>('/api/analisis/ranking', { params: { materia_id: materiaId, cohorte_id: cohorteId } }).then(r => r.data),
 
   getReporte: (materiaId: string, cohorteId: string) =>
-    api.get<Reporte>('/api/analisis/reporte', { params: { materia_id: materiaId, cohorte_id: cohorteId } }).then(r => r.data),
+    api.get<Reporte>('/api/analisis/reporte-rapido', { params: { materia_id: materiaId, cohorte_id: cohorteId } }).then(r => r.data),
 
   getNotasFinales: (materiaId: string, cohorteId: string) =>
     api.get<NotaFinal[]>('/api/analisis/notas-finales', { params: { materia_id: materiaId, cohorte_id: cohorteId } }).then(r => r.data),
