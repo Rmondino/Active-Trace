@@ -6,6 +6,8 @@ Provides:
     - db_session: AsyncSession connected to the test database.
 """
 
+import hashlib
+import uuid
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -19,6 +21,76 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import Settings
 from app.core.database import Base, init_engine, get_db_session
+
+# ── Shared test helpers ──
+
+
+async def create_user(
+    db: AsyncSession,
+    tenant_id: str,
+    email: str = "test@example.com",
+    password: str = "SecurePass123!",
+    nombre: str = "Test",
+    apellidos: str = "User",
+    roles: list[str] | None = None,
+    **extra: object,
+) -> "User":  # noqa: F821
+    """Create a test user with the expanded model.
+
+    Encrypts PII fields, computes email_hash, and optionally creates
+    Asignacion records for the given roles.
+
+    Returns:
+        The created User instance.
+    """
+    from datetime import date
+
+    from app.core.security import encrypt, get_encryption_key
+
+    settings = Settings(
+        _env_file=None,
+        DATABASE_URL="postgresql+asyncpg://app_user:dev_password@localhost:5432/activia_trace_test",
+        SECRET_KEY="a" * 32,
+        ENCRYPTION_KEY="b" * 32,
+    )
+    enc_key = get_encryption_key(settings)
+    email_hash = hashlib.sha256(email.lower().encode()).hexdigest()
+    encrypted_email = encrypt(email, enc_key)
+
+    from app.models.user import User
+
+    user = User(
+        id=str(uuid.uuid4()),
+        tenant_id=tenant_id,
+        email=encrypted_email,
+        email_hash=email_hash,
+        password_hash=None,  # type: ignore[arg-type]
+        nombre=nombre,
+        apellidos=apellidos,
+        dni=encrypt("00000000", enc_key),
+        **extra,
+    )
+    from app.core.security import hash_password
+
+    user.password_hash = hash_password(password)
+    db.add(user)
+    await db.flush()
+
+    if roles:
+        from app.models.asignacion import Asignacion
+
+        for rol in roles:
+            asig = Asignacion(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant_id,
+                usuario_id=user.id,
+                rol=rol.upper(),
+                desde=date(2020, 1, 1),
+            )
+            db.add(asig)
+        await db.flush()
+
+    return user
 
 
 @pytest.fixture(scope="session")

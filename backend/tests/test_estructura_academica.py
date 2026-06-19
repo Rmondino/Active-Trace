@@ -478,18 +478,14 @@ class TestEstructuraRouter:
         return app
 
     async def _create_admin_user(self, db, tenant_id):
-        from app.core.security import hash_password
-        from app.models.user import User
+        from tests.conftest import create_user
 
-        u = User(
-            id=str(uuid.uuid4()),
-            tenant_id=tenant_id,
+        u = await create_user(
+            db, tenant_id,
             email=f"admin-{uuid.uuid4().hex[:8]}@test.com",
-            password_hash=hash_password("Pass1234!"),
+            password="Pass1234!",
             roles=["admin"],
         )
-        db.add(u)
-        await db.flush()
         # Seed the required permission for the admin role
         await _seed_role_permiso(db, "admin", "estructura:gestionar")
         return u
@@ -973,21 +969,18 @@ class TestEstructuraRouter:
 
     async def test_usuario_sin_permiso_403(self, db_session, test_settings):
         """User without admin role (no estructura:gestionar) gets 403."""
-        from app.core.security import hash_password
-        from app.models.user import User
+        from tests.conftest import create_user
 
         tenant = Tenant(id=str(uuid.uuid4()), slug=f"t-{uuid.uuid4().hex[:8]}", nombre="T", estado="Activo")
         db_session.add(tenant)
         await db_session.flush()
 
-        user = User(
-            id=str(uuid.uuid4()),
-            tenant_id=tenant.id,
+        user = await create_user(
+            db_session, tenant.id,
             email=f"alumno-{uuid.uuid4().hex[:8]}@test.com",
-            password_hash=hash_password("Pass1234!"),
+            password="Pass1234!",
             roles=["alumno"],
         )
-        db_session.add(user)
         await db_session.commit()
 
         app = await self._build_app(db_session, test_settings, user)
@@ -1006,8 +999,7 @@ class TestMultiTenantIsolation:
 
     async def test_carreras_isolated(self, db_session, test_settings):
         from app.models.carrera import Carrera
-        from app.core.security import hash_password
-        from app.models.user import User
+        from tests.conftest import create_user
 
         t_a = Tenant(id=str(uuid.uuid4()), slug=f"a-{uuid.uuid4().hex[:8]}", nombre="T A", estado="Activo")
         t_b = Tenant(id=str(uuid.uuid4()), slug=f"b-{uuid.uuid4().hex[:8]}", nombre="T B", estado="Activo")
@@ -1018,14 +1010,12 @@ class TestMultiTenantIsolation:
         db_session.add(c)
         await db_session.flush()
 
-        user_b = User(
-            id=str(uuid.uuid4()), tenant_id=t_b.id,
+        user_b = await create_user(
+            db_session, t_b.id,
             email=f"b-{uuid.uuid4().hex[:8]}@test.com",
-            password_hash=hash_password("Pass1234!"),
+            password="Pass1234!",
             roles=["admin"],
         )
-        db_session.add(user_b)
-        await db_session.flush()
         await _seed_role_permiso(db_session, "admin", "estructura:gestionar")
         await db_session.commit()
 

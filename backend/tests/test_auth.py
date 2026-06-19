@@ -69,16 +69,8 @@ async def _create_user(
     email: str = "test@example.com",
     password: str = "SecurePass123!",
 ) -> User:
-    u = User(
-        id=str(uuid.uuid4()),
-        tenant_id=tenant_id,
-        email=email,
-        password_hash=hash_password(password),
-        roles=["ADMIN"],
-    )
-    db.add(u)
-    await db.flush()
-    return u
+    from tests.conftest import create_user
+    return await create_user(db, tenant_id, email=email, password=password)
 
 
 # ═══════════════════════════════════════════
@@ -92,11 +84,16 @@ class TestJWT:
     def test_create_and_verify_access_token(self):
         """Round-trip: create → verify returns correct claims."""
         settings = _make_settings()
+        from app.core.security import encrypt, get_encryption_key
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="test@example.com",
-            roles=["ADMIN"],
+            email=encrypt("test@example.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
         )
         token = create_access_token(user, settings)
         claims = verify_token(token, settings)
@@ -104,31 +101,45 @@ class TestJWT:
         assert claims is not None
         assert claims["sub"] == user.id
         assert claims["tenant_id"] == user.tenant_id
-        assert claims["roles"] == ["ADMIN"]
+        assert "roles" not in claims
 
     def test_create_and_verify_refresh_token(self):
         """Refresh token has longer expiration."""
         settings = _make_settings()
+        from app.core.security import encrypt, get_encryption_key
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="test@example.com",
-            roles=[],
+            email=encrypt("test@example.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
         )
         token = create_refresh_token(user, settings)
         claims = decode_token_unsafe(token)
 
         assert claims["type"] == "refresh"
-        # Refresh tokens are 7 days = 604800 seconds
         exp = claims["exp"]
         iat = claims["iat"]
-        assert exp - iat >= 604800 - 10  # Allow clock drift
+        assert exp - iat >= 604800 - 10
 
     def test_verify_invalid_signature_returns_none(self):
         """Token signed with different key should not verify."""
         settings_a = _make_settings(secret_key="a" * 32)
         settings_b = _make_settings(secret_key="b" * 32)
-        user = User(id=str(uuid.uuid4()), tenant_id=str(uuid.uuid4()), email="a@b.com", roles=[])
+        from app.core.security import encrypt, get_encryption_key
+        enc_key = get_encryption_key(settings_a)
+        user = User(
+            id=str(uuid.uuid4()),
+            tenant_id=str(uuid.uuid4()),
+            email=encrypt("a@b.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
+        )
 
         token = create_access_token(user, settings_a)
         claims = verify_token(token, settings_b)
@@ -138,9 +149,19 @@ class TestJWT:
     def test_verify_expired_token_returns_none(self):
         """Token past its expiration should not verify."""
         settings = _make_settings()
-        user = User(id=str(uuid.uuid4()), tenant_id=str(uuid.uuid4()), email="a@b.com", roles=[])
+        from app.core.security import encrypt, get_encryption_key
+        enc_key = get_encryption_key(settings)
+        user = User(
+            id=str(uuid.uuid4()),
+            tenant_id=str(uuid.uuid4()),
+            email=encrypt("a@b.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
+        )
 
-        token = create_access_token(user, settings, expires_delta=-1)  # Already expired
+        token = create_access_token(user, settings, expires_delta=-1)
         claims = verify_token(token, settings)
 
         assert claims is None
@@ -155,17 +176,14 @@ class TestPasswordHashing:
     """Argon2id password hashing and verification."""
 
     def test_hash_and_verify(self):
-        """Hash + verify with correct password returns True."""
         hashed = hash_password("MySecureP@ss1")
         assert verify_password("MySecureP@ss1", hashed)
 
     def test_wrong_password_fails(self):
-        """Verify with wrong password returns False."""
         hashed = hash_password("MySecureP@ss1")
         assert not verify_password("WrongPassword", hashed)
 
     def test_hash_is_different_each_time(self):
-        """Argon2id uses unique salts → hashes differ."""
         h1 = hash_password("SamePassword")
         h2 = hash_password("SamePassword")
         assert h1 != h2
@@ -180,45 +198,34 @@ class TestRateLimiter:
     """In-memory sliding window rate limiter."""
 
     def test_allows_within_limit(self):
-        """Requests under the limit are allowed."""
         limiter = RateLimiter()
         for _ in range(5):
             assert limiter.check("key-1", max_attempts=5, window_seconds=60)
 
     def test_blocks_when_exceeded(self):
-        """Requests over the limit are blocked."""
         limiter = RateLimiter()
         for _ in range(5):
             limiter.check("key-2", max_attempts=5, window_seconds=60)
         assert not limiter.check("key-2", max_attempts=5, window_seconds=60)
 
     def test_different_keys_independent(self):
-        """Each key has its own counter."""
         limiter = RateLimiter()
         for _ in range(5):
             limiter.check("key-a", max_attempts=5, window_seconds=60)
-        # Different key should still be allowed
         assert limiter.check("key-b", max_attempts=5, window_seconds=60)
 
     def test_sliding_window_expires(self):
-        """After the window passes, requests are allowed again."""
         limiter = RateLimiter()
         for _ in range(5):
             limiter.check("key-3", max_attempts=5, window_seconds=1)
-
-        # Immediately after, should be blocked
         assert not limiter.check("key-3", max_attempts=5, window_seconds=1)
-
-        # Wait for window to expire
         time.sleep(1.1)
         assert limiter.check("key-3", max_attempts=5, window_seconds=1)
 
     def test_retry_after_returns_correct_value(self):
-        """get_retry_after returns seconds until reset."""
         limiter = RateLimiter()
         for _ in range(5):
             limiter.check("key-4", max_attempts=5, window_seconds=60)
-
         retry = limiter.get_retry_after("key-4", window_seconds=60)
         assert 0 < retry <= 60
 
@@ -233,7 +240,6 @@ class TestLogin:
     """End-to-end login flow with real DB."""
 
     async def test_login_ok(self, db_session: AsyncSession, async_client: AsyncClient):
-        """Valid credentials return tokens."""
         tenant = await _create_tenant(db_session)
         await _create_user(db_session, tenant.id, email="login-ok@test.com", password="Pass1234!")
         await db_session.commit()
@@ -248,10 +254,9 @@ class TestLogin:
         assert data["access_token"] is not None
         assert data["refresh_token"] is not None
         assert data["token_type"] == "bearer"
-        assert data["user"]["email"] == "login-ok@test.com"
+        assert "id" in data["user"]
 
     async def test_login_wrong_password(self, db_session: AsyncSession, async_client: AsyncClient):
-        """Wrong password returns 401."""
         tenant = await _create_tenant(db_session)
         await _create_user(db_session, tenant.id, email="login-wrong@test.com", password="Pass1234!")
         await db_session.commit()
@@ -264,7 +269,6 @@ class TestLogin:
         assert response.status_code == 401
 
     async def test_login_nonexistent_email(self, db_session: AsyncSession, async_client: AsyncClient):
-        """Non-existent email returns 401."""
         tenant = await _create_tenant(db_session)
         await db_session.commit()
 
@@ -276,10 +280,8 @@ class TestLogin:
         assert response.status_code == 401
 
     async def test_login_with_2fa_gate(self, db_session: AsyncSession, async_client: AsyncClient):
-        """User with 2FA enrolled sees gate instead of tokens."""
         tenant = await _create_tenant(db_session)
         user = await _create_user(db_session, tenant.id, email="2fa-gate@test.com", password="Pass1234!")
-        # Enable 2FA
         user.two_fa_enabled = True
         user.two_fa_secret = "JBSWY3DPEHPK3PXP"
         await db_session.commit()
@@ -306,7 +308,6 @@ class TestRefreshRotation:
     """Refresh token rotation with family-based theft detection."""
 
     async def test_refresh_ok(self, db_session: AsyncSession):
-        """Valid refresh token returns new pair."""
         tenant = await _create_tenant(db_session)
         user = await _create_user(db_session, tenant.id, email="refresh@test.com")
         await db_session.commit()
@@ -321,7 +322,6 @@ class TestRefreshRotation:
         assert new_pair["refresh_token"] != old_refresh
 
     async def test_reuse_revokes_family(self, db_session: AsyncSession):
-        """Using an already-rotated token revokes the entire family."""
         tenant = await _create_tenant(db_session)
         user = await _create_user(db_session, tenant.id, email="reuse@test.com")
         await db_session.commit()
@@ -330,25 +330,19 @@ class TestRefreshRotation:
         result = await login(db_session, "reuse@test.com", "SecurePass123!", settings)
         old_refresh = result["refresh_token"]
 
-        # First rotation (legitimate)
         await refresh_access(db_session, old_refresh, settings)
         await db_session.commit()
 
-        # Second use of old token (theft attempt) → should fail
         result2 = await refresh_access(db_session, old_refresh, settings)
         assert "error" in result2
-
-        # Any token from the same family should also be invalid
         await db_session.commit()
 
     async def test_invalid_token_returns_error(self, db_session: AsyncSession):
-        """Bogus refresh token returns error."""
         settings = _make_settings()
         result = await refresh_access(db_session, "bogus-token", settings)
         assert "error" in result
 
     async def test_expired_token_is_expired(self, db_session: AsyncSession):
-        """A token with past expires_at is detected as expired."""
         from datetime import UTC, datetime, timedelta
 
         rt = RefreshToken(
@@ -362,7 +356,6 @@ class TestRefreshRotation:
         assert rt.is_expired
 
     async def test_active_token_is_not_expired(self, db_session: AsyncSession):
-        """A token with future expires_at is not expired."""
         from datetime import UTC, datetime, timedelta
 
         rt = RefreshToken(
@@ -385,12 +378,17 @@ class TestTwoFA:
     """TOTP-based 2FA enrollment and verification."""
 
     def test_enroll_returns_secret_and_uri(self):
-        """enroll_2fa generates a valid TOTP secret and provisioning URI."""
+        from app.core.security import encrypt, get_encryption_key
+        settings = _make_settings()
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="2fa@test.com",
-            roles=[],
+            email=encrypt("2fa@test.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
         )
         result = enroll_2fa(user)
 
@@ -399,18 +397,23 @@ class TestTwoFA:
         assert result["uri"].startswith("otpauth://")
 
     def test_verify_valid_code(self):
-        """verify_2fa_code with a valid TOTP code returns True and activates."""
         import pyotp
 
         secret = pyotp.random_base32()
         totp = pyotp.TOTP(secret)
         code = totp.now()
 
+        from app.core.security import encrypt, get_encryption_key
+        settings = _make_settings()
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="verify@test.com",
-            roles=[],
+            email=encrypt("verify@test.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
             two_fa_secret=secret,
             two_fa_enabled=False,
         )
@@ -419,23 +422,33 @@ class TestTwoFA:
         assert user.two_fa_enabled is True
 
     def test_verify_wrong_code_returns_false(self):
-        """verify_2fa_code with wrong code returns False."""
+        from app.core.security import encrypt, get_encryption_key
+        settings = _make_settings()
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="wrong@test.com",
-            roles=[],
+            email=encrypt("wrong@test.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
             two_fa_secret="JBSWY3DPEHPK3PXP",
         )
         assert not verify_2fa_code(user, "000000")
 
     def test_verify_no_secret_returns_false(self):
-        """verify_2fa_code without a secret returns False."""
+        from app.core.security import encrypt, get_encryption_key
+        settings = _make_settings()
+        enc_key = get_encryption_key(settings)
         user = User(
             id=str(uuid.uuid4()),
             tenant_id=str(uuid.uuid4()),
-            email="nosecret@test.com",
-            roles=[],
+            email=encrypt("nosecret@test.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
             two_fa_secret=None,
         )
         assert not verify_2fa_code(user, "123456")
@@ -451,7 +464,6 @@ class TestPasswordRecovery:
     """Password forgot and reset flow."""
 
     async def test_forgot_creates_token(self, db_session: AsyncSession):
-        """Forgot password creates a reset token for existing email."""
         tenant = await _create_tenant(db_session)
         await _create_user(db_session, tenant.id, email="forgot@test.com")
         await db_session.commit()
@@ -461,12 +473,10 @@ class TestPasswordRecovery:
         assert len(token) > 20
 
     async def test_forgot_nonexistent_email_returns_none(self, db_session: AsyncSession):
-        """Forgot password returns None for nonexistent email."""
         token = await create_password_reset_token(db_session, "noone@test.com")
         assert token is None
 
     async def test_reset_with_valid_token(self, db_session: AsyncSession):
-        """Reset password with valid token succeeds."""
         tenant = await _create_tenant(db_session)
         user = await _create_user(db_session, tenant.id, email="reset@test.com")
         await db_session.commit()
@@ -477,19 +487,16 @@ class TestPasswordRecovery:
         success = await reset_password(db_session, token, "NewPass123!")
         assert success
 
-        # Verify new password works
         from app.core.security import verify_password
 
         await db_session.refresh(user)
         assert verify_password("NewPass123!", user.password_hash)
 
     async def test_reset_with_invalid_token(self, db_session: AsyncSession):
-        """Reset password with invalid token fails."""
         success = await reset_password(db_session, "invalid-token", "NewPass123!")
         assert not success
 
     async def test_reset_with_reused_token(self, db_session: AsyncSession):
-        """Reset password with already-used token fails."""
         tenant = await _create_tenant(db_session)
         await _create_user(db_session, tenant.id, email="reuse-reset@test.com")
         await db_session.commit()
@@ -497,12 +504,10 @@ class TestPasswordRecovery:
         token = await create_password_reset_token(db_session, "reuse-reset@test.com")
         assert token is not None
 
-        # First use — succeeds
         success = await reset_password(db_session, token, "NewPass456!")
         assert success
         await db_session.commit()
 
-        # Second use — fails
         success2 = await reset_password(db_session, token, "AnotherPass!")
         assert not success2
 
@@ -517,7 +522,6 @@ class TestGetCurrentUser:
     """get_current_user dependency resolution from JWT."""
 
     async def test_valid_token_returns_user(self, db_session: AsyncSession, async_client: AsyncClient):
-        """A valid JWT with an existing user returns the user."""
         tenant = await _create_tenant(db_session)
         user = await _create_user(db_session, tenant.id, email="current-user@test.com")
         await db_session.commit()
@@ -530,16 +534,22 @@ class TestGetCurrentUser:
             headers={"Authorization": f"Bearer {token}"},
         )
 
-        # This endpoint doesn't exist yet, but we can test via the dependency
-        # Actually, let's test directly
-        assert response.status_code == 404  # No /me endpoint yet
+        assert response.status_code == 404
 
     async def test_expired_token_returns_401(self, db_session: AsyncSession, async_client: AsyncClient):
-        """Expired JWT should return 401."""
         settings = _make_settings()
-        user = User(id=str(uuid.uuid4()), tenant_id=str(uuid.uuid4()), email="expired@test.com", roles=[])
+        from app.core.security import encrypt, get_encryption_key
+        enc_key = get_encryption_key(settings)
+        user = User(
+            id=str(uuid.uuid4()),
+            tenant_id=str(uuid.uuid4()),
+            email=encrypt("expired@test.com", enc_key),
+            email_hash="abc123",
+            nombre="Test",
+            apellidos="User",
+            dni=encrypt("12345678", enc_key),
+        )
 
-        # Already expired
         token = create_access_token(user, settings, expires_delta=-1)
 
         response = await async_client.post(
@@ -551,7 +561,6 @@ class TestGetCurrentUser:
         assert response.status_code == 401
 
     async def test_no_auth_header_returns_422(self, async_client: AsyncClient):
-        """Missing authorization header returns 422 (FastAPI validation)."""
         response = await async_client.post(
             "/api/auth/logout",
             json={"refresh_token": "some-token"},

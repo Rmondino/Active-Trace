@@ -57,12 +57,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     # Register routers
-    from app.api.v1.routers.health import router as health_router  # noqa: PLC0415
-    from app.routers.auth import router as auth_router  # noqa: PLC0415
-    from app.routers.admin.estructura import router as estructura_router  # noqa: PLC0415
+    from app.api.v1.routers.health import router as health_router
+    from app.routers.auth import router as auth_router
+    from app.routers.admin.estructura import router as estructura_router
+    from app.routers.admin.usuarios import router as usuarios_router
+    from app.routers.asignaciones import router as asignaciones_router
+    from app.routers.usuarios_me import router as usuarios_me_router
 
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(estructura_router)
+    app.include_router(usuarios_router)
+    app.include_router(asignaciones_router)
+    app.include_router(usuarios_me_router)
 
     return app

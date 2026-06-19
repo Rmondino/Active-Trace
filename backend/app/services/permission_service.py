@@ -1,17 +1,20 @@
 """Permission resolution service — RBAC authorization server-side.
 
 Resolves effective permissions for a user within a tenant by:
-    1. Finding all roles assigned to the user
-    2. Union of all permissions from those roles (via rol_permiso)
-    3. Returning (codigo, alcance) tuples scoped by tenant
+    1. Finding active (vigentes) Asignacion records for the user
+    2. Extracting unique role slugs from those asignaciones
+    3. Union of all permissions from those roles (via rol_permiso)
+    4. Returning (codigo, alcance) tuples scoped by tenant
 
-The User.roles JSONB is used as a source of role slugs for the user.
-Permissions are NEVER cached in the JWT — always resolved server-side.
+El JSONB `user.roles` está deprecado — los roles se resuelven desde Asignacion.
 """
+
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asignacion import Asignacion
 from app.models.permiso import Permiso
 from app.models.rol import Rol
 from app.models.rol_permiso import RolPermiso
@@ -34,22 +37,34 @@ class PermissionService:
     ) -> list[tuple[str, str]]:
         """Get all effective permissions for a user within their tenant.
 
-        Resolves the union of permissions from all roles assigned to the user.
+        Resolves the union of permissions from all active (vigentes)
+        Asignacion records for the user.
 
         Args:
-            user: The user (must have .roles and .tenant_id).
+            user: The user (must have .id and .tenant_id).
 
         Returns:
             List of (codigo, alcance) tuples.
-            Empty list if the user has no roles.
+            Empty list if the user has no active asignaciones.
         """
-        if not user.roles:
+        # 1. Get active role slugs from Asignacion (with vigencia filter)
+        result = await self.db.execute(
+            select(Asignacion.rol).where(
+                Asignacion.usuario_id == user.id,
+                Asignacion.tenant_id == user.tenant_id,
+                Asignacion.deleted_at.is_(None),
+                Asignacion.desde <= date.today(),
+                (Asignacion.hasta.is_(None)) | (Asignacion.hasta >= date.today()),
+            )
+        )
+        role_slugs = list(set(row[0].lower() for row in result.all()))
+        if not role_slugs:
             return []
 
-        # Find role IDs by slug
+        # 2. Find role IDs by slug
         result = await self.db.execute(
             select(Rol.id).where(
-                Rol.slug.in_(user.roles),
+                Rol.slug.in_(role_slugs),
                 Rol.deleted_at.is_(None),
             )
         )
@@ -57,7 +72,7 @@ class PermissionService:
         if not role_ids:
             return []
 
-        # Get all permissions for these roles
+        # 3. Get all permissions for these roles
         result = await self.db.execute(
             select(Permiso.codigo, RolPermiso.alcance)
             .select_from(RolPermiso)
@@ -65,7 +80,7 @@ class PermissionService:
             .where(RolPermiso.rol_id.in_(role_ids))
         )
 
-        # Deduplicate by codigo (union of permissions)
+        # 4. Deduplicate by codigo (union of permissions)
         seen: set[str] = set()
         permissions: list[tuple[str, str]] = []
         for codigo, alcance in result.all():

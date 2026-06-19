@@ -1,7 +1,7 @@
 """JWT token creation and verification utilities.
 
 Uses HS256 with SECRET_KEY. Tokens include standard claims (sub, exp, iat, jti)
-plus custom claims (tenant_id, roles).
+plus custom claim (tenant_id).
 
 Refresh tokens are longer-lived (7 days) and participate in rotation protocol.
 """
@@ -35,7 +35,6 @@ def create_access_token(user: User, settings: Settings, expires_delta: int | Non
     payload = {
         "sub": user.id,
         "tenant_id": user.tenant_id,
-        "roles": user.roles,
         "exp": now + delta,
         "iat": now,
         "jti": str(uuid.uuid4()),

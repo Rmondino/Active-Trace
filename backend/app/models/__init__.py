@@ -14,8 +14,10 @@ from app.models.user import User
 from app.models.carrera import Carrera
 from app.models.cohorte import Cohorte
 from app.models.materia import Materia
+from app.models.asignacion import Asignacion
 
 __all__ = [
+    "Asignacion",
     "Carrera",
     "Cohorte",
     "Materia",
