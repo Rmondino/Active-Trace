@@ -40,6 +40,22 @@
       "sessions": 0,
       "memories": 1,
       "prompts": 2
+    },
+    {
+      "id": "abc97626",
+      "created_by": "brian",
+      "created_at": "2026-06-19T04:12:44Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 3
+    },
+    {
+      "id": "3cb225c8",
+      "created_by": "brian",
+      "created_at": "2026-06-19T04:17:01Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }
