@@ -88,6 +88,12 @@ class Settings(BaseSettings):
         description="Web service token for Moodle API",
     )
 
+    # ── CORS (optional) ──
+    cors_origins: str = Field(
+        default="http://localhost:5173,http://localhost:3000",
+        description="Comma-separated allowed CORS origins",
+    )
+
     # ── OpenTelemetry (optional) ──
     OTEL_SERVICE_NAME: str | None = Field(
         default=None,

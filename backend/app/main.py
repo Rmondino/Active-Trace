@@ -56,6 +56,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    # CORS middleware (before routers so preflight is handled)
+    from fastapi.middleware.cors import CORSMiddleware  # noqa: PLC0415
+
+    origins = resolved_settings.cors_origins.split(",")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # Register routers
     from app.api.v1.routers.health import router as health_router
     from app.routers.auth import router as auth_router
@@ -72,6 +84,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.routers.encuentros import router as encuentros_router
     from app.routers.guardias import router as guardias_router
     from app.routers.coloquios import router as coloquios_router
+    from app.routers.avisos import router as avisos_router
 
     app.include_router(health_router)
     app.include_router(auth_router)
@@ -88,5 +101,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(encuentros_router)
     app.include_router(guardias_router)
     app.include_router(coloquios_router)
+    app.include_router(avisos_router)
 
     return app

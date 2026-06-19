@@ -85,6 +85,27 @@ def verify_token(token: str, settings: Settings) -> dict | None:
         return None
 
 
+def decode_token(token: str, settings: Settings) -> dict:
+    """Decode and verify a JWT, raising on invalid/expired.
+
+    Args:
+        token: The JWT string to verify.
+        settings: App settings (uses SECRET_KEY).
+
+    Returns:
+        Decoded claims dictionary.
+
+    Raises:
+        JWTError: If the token is invalid, expired, or has a bad signature.
+    """
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=["HS256"],
+        options={"require": ["exp", "iat", "jti", "sub"]},
+    )
+
+
 def decode_token_unsafe(token: str) -> dict:
     """Decode a JWT without verifying signature (debugging only).
 
