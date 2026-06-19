@@ -9,6 +9,9 @@ from app.repositories.tenant_repository import TenantRepository
 from app.repositories.umbral_materia_repository import UmbralMateriaRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.version_padron_repository import VersionPadronRepository
+from app.repositories.slot_encuentro_repository import SlotEncuentroRepository
+from app.repositories.instancia_encuentro_repository import InstanciaEncuentroRepository
+from app.repositories.guardia_repository import GuardiaRepository
 
 __all__ = [
     "AsignacionRepository",
@@ -22,4 +25,7 @@ __all__ = [
     "UmbralMateriaRepository",
     "UserRepository",
     "VersionPadronRepository",
+    "SlotEncuentroRepository",
+    "InstanciaEncuentroRepository",
+    "GuardiaRepository",
 ]
