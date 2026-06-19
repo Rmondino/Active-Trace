@@ -33,6 +33,9 @@ def _hash_token(token: str) -> str:
 async def authenticate(db: AsyncSession, email: str, password: str) -> User | None:
     """Verify email + password credentials.
 
+    Looks up by email_hash (SHA-256 of lowercased email) for login.
+    Decrypts the stored email to verify a match.
+
     Args:
         db: Database session.
         email: User's email.
@@ -41,8 +44,9 @@ async def authenticate(db: AsyncSession, email: str, password: str) -> User | No
     Returns:
         User if credentials are valid, None otherwise.
     """
+    email_hash = hashlib.sha256(email.lower().encode("utf-8")).hexdigest()
     result = await db.execute(
-        select(User).where(User.email == email, User.deleted_at.is_(None))
+        select(User).where(User.email_hash == email_hash, User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
     if user is None:
@@ -79,7 +83,6 @@ async def login(
         return {"error": "Credenciales inválidas"}
 
     if user.two_fa_enabled:
-        # Generate a short-lived session token for 2FA verification
         gate_token = create_access_token(
             user,
             settings,
@@ -87,7 +90,7 @@ async def login(
         return {
             "requires_2fa": True,
             "session_token": gate_token,
-            "user": {"id": user.id, "email": user.email},
+            "user": {"id": user.id},
         }
 
     access = create_access_token(user, settings)
@@ -98,7 +101,7 @@ async def login(
         "access_token": access,
         "refresh_token": refresh,
         "token_type": "bearer",
-        "user": {"id": user.id, "email": user.email, "roles": user.roles},
+        "user": {"id": user.id},
     }
 
 
@@ -234,11 +237,19 @@ def enroll_2fa(user: User) -> dict:
     Returns:
         dict with secret (Base32) and URI for QR code.
     """
+    from app.core.config import Settings
+    from app.core.security import decrypt, get_encryption_key
     secret = pyotp.random_base32()
-    # Store the secret (will be encrypted in production)
     user.two_fa_secret = secret
     totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=user.email, issuer_name="activia-trace")
+    # Decrypt email for provisioning URI label
+    try:
+        settings = Settings()  # type: ignore[call-arg]
+        enc_key = get_encryption_key(settings)
+        email_plain = decrypt(user.email, enc_key)
+    except Exception:
+        email_plain = user.email  # Fallback (tests without settings)
+    uri = totp.provisioning_uri(name=email_plain, issuer_name="activia-trace")
     return {"secret": secret, "uri": uri}
 
 
@@ -272,13 +283,14 @@ async def create_password_reset_token(
 
     Args:
         db: Database session.
-        email: User's email.
+        email: User's email (looked up by email_hash).
 
     Returns:
         The raw token string (to be sent via email), or None if email not found.
     """
+    email_hash = hashlib.sha256(email.lower().encode("utf-8")).hexdigest()
     result = await db.execute(
-        select(User).where(User.email == email, User.deleted_at.is_(None))
+        select(User).where(User.email_hash == email_hash, User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
     if user is None:

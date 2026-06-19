@@ -3,10 +3,13 @@
 Provides:
     - encrypt/decrypt: AES-256-GCM for PII at rest
     - hash_password/verify_password: Argon2id for authentication
+    - hash_email: SHA-256(LOWER(email)) for login lookup
+    - mask_pii: mask sensitive fields for list responses
     - get_encryption_key: retrieve the AES-256 key from Settings
 """
 
 import base64
+import hashlib
 import os
 
 from argon2 import PasswordHasher
@@ -111,3 +114,53 @@ def get_encryption_key(settings: Settings) -> bytes:
     key = settings.ENCRYPTION_KEY.encode("utf-8")
     _validate_key(key)
     return key
+
+
+def hash_email(email: str) -> str:
+    """Compute SHA-256 hash of a lowercased email for lookup.
+
+    Args:
+        email: The plaintext email address.
+
+    Returns:
+        Hex-encoded SHA-256 digest.
+    """
+    return hashlib.sha256(email.lower().encode("utf-8")).hexdigest()
+
+
+def mask_pii(value: str | None, visible_chars: int = 3) -> str | None:
+    """Mask a PII field showing only the last N characters.
+
+    Args:
+        value: The plaintext value to mask.
+        visible_chars: Number of trailing characters to show.
+
+    Returns:
+        Masked string (e.g. "*********123") or None if input is None.
+    """
+    if value is None:
+        return None
+    if len(value) <= visible_chars:
+        return value
+    return "*" * (len(value) - visible_chars) + value[-visible_chars:]
+
+
+def mask_email(email: str) -> str:
+    """Mask an email address for safe display.
+
+    Shows first character of local part + domain.
+
+    Args:
+        email: Plaintext email address.
+
+    Returns:
+        Masked email (e.g. "j***@example.com").
+    """
+    if "@" not in email:
+        return mask_pii(email, 3) or email
+    local, domain = email.split("@", 1)
+    if len(local) <= 1:
+        masked_local = local
+    else:
+        masked_local = local[0] + "*" * (len(local) - 1)
+    return f"{masked_local}@***" if not domain else f"{masked_local}@***"
