@@ -36,13 +36,13 @@ C-01 foundation-setup (infra, Docker, FastAPI skel, DB inicial, OTel)
             │   │   ├── [x] C-15 avisos-y-acknowledgment (Aviso, ack, scope, vigencia)
             │   │   ├── C-16 tareas-internas (Tarea, ComentarioTarea, workflow)
             │   │   ├── C-17 programas-y-fechas-academicas (ProgramaMateria, FechaAcademica)
-            │   │   └── C-18 liquidaciones-y-honorarios (SalarioBase/Plus, Liquidacion, Factura)
+            │   │   └── [x] C-18 liquidaciones-y-honorarios (SalarioBase/Plus, Liquidacion, Factura)
             │   ├── C-19 panel-auditoria-metricas (dashboards de uso, F9.1)
             │   ├── C-20 perfil-y-mensajeria-interna (perfil propio, inbox interno)
             │   └── C-21 frontend-shell-y-auth (SPA shell, login, guard, cliente HTTP)
             │       ├── C-22 frontend-academico-docente (importación, atrasados, comunicaciones)
             │       ├── C-23 frontend-coordinacion (equipos, avisos, tareas, monitores)
-            │       └── C-24 frontend-finanzas-y-admin (liquidaciones, facturas, estructura, auditoría)
+            │       └── [x] C-24 frontend-finanzas-y-admin (liquidaciones, facturas, estructura, auditoría)
 ```
 
 ### Paralelismo por fase
@@ -199,7 +199,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/08_arquitectura_propuesta.md` §3.2 (RBAC permisos finos)
 
 ### [C-05] `audit-log`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Modelo `AuditLog` (E-AUD) **append-only**: sin update ni delete a nivel app y DB. Campos: actor, impersonado, materia, accion, detalle JSON, filas_afectadas, ip, user_agent, fecha_hora.
   - Helper/decorator de auditoría para registrar acciones significativas con código estandarizado (`CALIFICACIONES_IMPORTAR`, `PADRON_CARGAR`, etc.).
@@ -254,7 +254,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `docs/ARQUITECTURA.md` §5, §6 (PII cifrada AES-256)
 
 ### [C-17] `programas-y-fechas-academicas`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Modelos: `ProgramaMateria` (documento por materia × carrera × cohorte, `referencia_archivo` al almacenamiento), `FechaAcademica` (parciales/TP/coloquios por materia × cohorte × número).
   - `/api/programas` (upload + asociar, `estructura:gestionar`) y `/api/fechas-academicas` (CRUD, listado tabular + calendario).
@@ -417,7 +417,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/07_flujos_principales.md` FL-05 (workflow de tareas)
 
 ### [C-18] `liquidaciones-y-honorarios`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Modelos `SalarioBase` (por rol, vigencia), `SalarioPlus` (grupo × rol, vigencia), `Liquidacion` (base + plus = total, es_nexo, excluido_por_factura, estado Abierta/Cerrada), `Factura`.
   - Cálculo de liquidación del período (FL-08, RN-21): base por rol vigente + plus por grupos. Vista (F10.1), cerrar (F10.2, inmutable RN-22), historial (F10.3).
@@ -431,10 +431,10 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/04_modelo_de_datos.md` §E17–E20 (Salario, Liquidación, Factura)
   - `knowledge-base/06_funcionalidades.md` Épica 10 (F10.1–F10.6)
   - `knowledge-base/07_flujos_principales.md` FL-08 (liquidación)
-  - `knowledge-base/10_preguntas_abiertas.md` PA-22, PA-23 (mapeo y acumulación de Plus — confirmar antes)
+  - `knowledge-base/10_preguntas_abiertas.md` PA-22, PA-23 (resueltas — ver documento)
 
 ### [C-19] `panel-auditoria-metricas`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Panel de interacciones (F9.1): acciones por día, estado de comunicaciones por docente, interacciones por docente×materia, log de últimas acciones (máx configurable, defecto 200).
   - Log completo de auditoría (F9.2, RN-23/24) con filtros: rango de fechas, materia, usuario, estado.
@@ -448,7 +448,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/04_modelo_de_datos.md` §E-AUD
 
 ### [C-20] `perfil-y-mensajeria-interna`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Editar perfil propio (F11.1): nombre, datos fiscales/bancarios, regional, modalidad de cobro; CUIL solo lectura.
   - Bandeja de mensajes interna (F3.4, F11.2, FL-10): hilos recibidos, responder dentro del hilo. Mensajería entre usuarios registrados (paralela a comunicaciones a alumnos).
@@ -469,7 +469,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
 > `C-21` es el shell común. Las features (C-22/23/24) consumen los endpoints ya construidos en backend.
 
 ### [C-21] `frontend-shell-y-auth`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Scaffolding React 18 + TypeScript + Vite. Estructura feature-based. Tailwind, TanStack Query, React Hook Form + Zod, Axios.
   - Cliente HTTP centralizado: interceptor de auth + **refresh transparente** de tokens. Manejo de 401/403.
@@ -483,7 +483,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `docs/ARQUITECTURA.md` (stack frontend, convenciones)
 
 ### [C-22] `frontend-academico-docente`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Feature de gestión de comisión (PROFESOR): importación de calificaciones con preview y selección de actividades, configuración de umbral, vista de atrasados, ranking, notas finales, reportes rápidos.
   - Detección de entregas sin corregir + export. Comunicación a atrasados: preview + envío + tracking de estado en tiempo real.
@@ -496,7 +496,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/07_flujos_principales.md` FL-02, FL-04
 
 ### [C-23] `frontend-coordinacion`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Features de COORDINADOR/ADMIN: gestión de equipos docentes (mis-equipos, masiva, clonar, vigencia, export), avisos (ABM + scope + ack), tareas internas (workflow), monitores transversales (general F2.7, F2.9), encuentros admin, coloquios.
   - Setup de cuatrimestre (FL-03). Consume `C-08`, `C-13`, `C-14`, `C-15`, `C-16`, `C-17`.
@@ -508,7 +508,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 → C-11 →
   - `knowledge-base/07_flujos_principales.md` FL-03, FL-05, FL-06, FL-09
 
 ### [C-24] `frontend-finanzas-y-admin`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (2026-06-19)
 - **Scope**:
   - Feature FINANZAS: vista de liquidaciones del período con segmentación (general / NEXO / factura) + KPIs, cerrar liquidación, historial, grilla salarial, gestión de facturas.
   - Feature ADMIN: estructura académica (carreras, cohortes, materias), usuarios del tenant, panel de auditoría y métricas, log completo. Consume `C-06`, `C-07`, `C-18`, `C-19`.

@@ -38,30 +38,29 @@ Las cohortes (ej.: "MAR-2026") pueden pertenecer a una carrera específica o ser
 
 ---
 
-### PA-22 — ¿Cuántas claves de Plus existen y cómo se mapean a materias?
+### ~~PA-22~~ — CERRADA en C-18: Mapeo materia → grupo de Plus
 
-El modelo de liquidación define un **Plus** por combinación `(clave, rol)`, donde la clave agrupa familias de materias (ej.: `PROG` para materias de Programación). Ver [RN-31](05_reglas_de_negocio.md#rn-31) a [RN-38](05_reglas_de_negocio.md#rn-38).
+**Resolución** (implementada en C-18):
 
-**Preguntas abiertas**:
-
-- ¿Cuáles son todas las claves de Plus que existen en el dominio (ej.: `PROG`, `BD`, `ING`, `MAT`, etc.)?
-- ¿Qué materia cae en qué clave? ¿Hay materias sin clave asignada?
-- ¿Ese mapeo es configurable por tenant o está fijo para toda la plataforma?
-- ¿Lo define el ADMIN del tenant o viene preconfigurado desde la institución?
+- Se introduce la entidad `MateriaGrupoPlus(id, tenant_id, materia_id, grupo, desde, hasta)` con vigencia temporal.
+- Los grupos son strings libres definidos por cada institución. Ejemplos típicos: `PROG` (Programación), `BD` (Bases de Datos), `ING` (Inglés), `MAT` (Matemática), `AYSO` (Arquitectura/SO), `FIS` (Física).
+- El mapeo es **configurable por tenant** vía FINANZAS con permiso `liquidaciones:configurar-salarios`.
+- Las materias sin mapeo vigente no generan plus (solo contribuyen a la base).
+- El historial se preserva: al recategorizar una materia, se cierra la fila anterior y se crea una nueva. Las liquidaciones cerradas reproducen el cálculo original.
 
 ---
 
-### PA-23 — ¿Cómo se calcula el Plus cuando un docente tiene N comisiones de la misma clave?
+### ~~PA-23~~ — CERRADA en C-18: Acumulación y tope de Plus
 
-Si un PROFESOR tiene tres comisiones de materias que caen bajo la clave `PROG`:
+**Resolución** (implementada en C-18):
 
-**Preguntas abiertas**:
-
-- ¿Se acumula `3 × Plus(PROG, PROFESOR)` o se aplica una sola vez sin importar la cantidad de comisiones?
-- ¿Existe un tope de acumulación?
-- ¿La lógica cambia según el rol (TUTOR vs. PROFESOR vs. COORDINADOR)?
-
-**Impacto**: es la regla de negocio central del módulo de liquidaciones. Sin ella no se puede implementar el cálculo.
+- Se **acumula** por defecto: `N × Plus(grupo, rol)` donde N = cantidad de comisiones del docente en materias del grupo.
+- `SalarioPlus.tope_acumulacion` nullable:
+  - `NULL` = sin tope (acumulación ilimitada).
+  - `> 0` = máximo de comisiones del grupo que acumulan plus: `N_efectivo = min(N_comisiones, tope)`.
+- El tope es configurable **por instancia `(grupo × rol)`**.
+- La regla es la **misma para todos los roles** (TUTOR, PROFESOR, COORDINADOR).
+- Algoritmo: `monto_plus += SalarioPlus.monto × N_efectivo` para cada grupo aplicable.
 
 ---
 
@@ -243,6 +242,8 @@ Las siguientes preguntas que existían en versiones anteriores de este documento
 | PA-04 | Login por email + contraseña; 2FA opcional (TOTP); recuperación por token de un solo uso; alta solo administrativa en MVP | [07_flujos_principales.md](07_flujos_principales.md), [`docs/ARQUITECTURA.md` §5.1](../docs/ARQUITECTURA.md) |
 | PA-06 | Fórmula de liquidación: Base (por rol) + Plus (por clave × rol); ver RN-31 a RN-38 | [05_reglas_de_negocio.md](05_reglas_de_negocio.md) |
 | PA-21 | Impersonación via parámetro de petición: eliminada. La impersonación legítima requiere permiso explícito, sesión diferenciada y auditoría completa | [03_actores_y_roles.md §4](03_actores_y_roles.md), [`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md) |
+| PA-22 | Mapeo materia → grupo de Plus configurable por tenant con vigencia temporal. Grupos como strings libres definidos por cada institución | Este documento §PA-22, [05_reglas_de_negocio.md](05_reglas_de_negocio.md) |
+| PA-23 | Acumulación N × Plus(grupo, rol) por defecto, con tope nullable configurable por (grupo × rol). Misma regla para todos los roles | Este documento §PA-23, [05_reglas_de_negocio.md](05_reglas_de_negocio.md) |
 
 ---
 
@@ -250,7 +251,7 @@ Las siguientes preguntas que existían en versiones anteriores de este documento
 
 Para resolver las preguntas pendientes se recomienda:
 
-1. **Una sesión de trabajo con el responsable de producto** — cubre las preguntas de dominio (PA-01, PA-22, PA-23, PA-25 son prioritarias).
+1. **Una sesión de trabajo con el responsable de producto** — cubre las preguntas de dominio (PA-01, PA-25 son prioritarias).
 2. **Revisión del modelo de datos con el equipo técnico** — para validar las entidades y relaciones de [04_modelo_de_datos.md](04_modelo_de_datos.md).
 3. **Sesión de refinamiento con FINANZAS** — para cerrar PA-17, PA-18, PA-24 que afectan el módulo de liquidaciones.
 4. **Cuando se cierre una pregunta**: documentar la resolución en el archivo temático correspondiente y moverla a la tabla de "Decisiones ya cerradas" de este archivo.

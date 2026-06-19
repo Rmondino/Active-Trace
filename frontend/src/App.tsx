@@ -13,6 +13,20 @@ import { ComisionLayout } from '@/features/comision/pages/ComisionLayout'
 import { CalificacionesPage } from '@/features/comision/pages/CalificacionesPage'
 import { AtrasadosPage } from '@/features/comision/pages/AtrasadosPage'
 import { ComunicacionPage } from '@/features/comision/pages/ComunicacionPage'
+import { PerfilPage } from '@/features/perfil/pages/PerfilPage'
+import { InboxPage } from '@/features/inbox/pages/InboxPage'
+import { InboxDetailPage } from '@/features/inbox/pages/InboxDetailPage'
+import { NuevoMensajePage } from '@/features/inbox/pages/NuevoMensajePage'
+import { GrillaSalarialPage } from '@/features/liquidaciones/pages/GrillaSalarialPage'
+import { LiquidacionesPage } from '@/features/liquidaciones/pages/LiquidacionesPage'
+import { LiquidacionDetallePage } from '@/features/liquidaciones/pages/LiquidacionDetallePage'
+import { KpisPage } from '@/features/liquidaciones/pages/KpisPage'
+import { FacturasPage } from '@/features/facturas/pages/FacturasPage'
+import { CarrerasPage } from '@/features/admin/pages/CarrerasPage'
+import { CohortesPage } from '@/features/admin/pages/CohortesPage'
+import { MateriasPage } from '@/features/admin/pages/MateriasPage'
+import { UsuariosPage } from '@/features/admin/pages/UsuariosPage'
+import { AuditoriaPage } from '@/features/admin/pages/AuditoriaPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +53,20 @@ function App() {
               <Route element={<AppLayout />}>
                 <Route path="/" element={<div>Dashboard</div>} />
                 <Route path="/2fa/setup" element={<TwoFASetupPage />} />
+                <Route path="/perfil" element={<PerfilPage />} />
+                <Route path="/inbox" element={<InboxPage />} />
+                <Route path="/inbox/nuevo" element={<NuevoMensajePage />} />
+                <Route path="/inbox/:id" element={<InboxDetailPage />} />
+                <Route path="/liquidaciones" element={<LiquidacionesPage />} />
+                <Route path="/liquidaciones/grilla" element={<GrillaSalarialPage />} />
+                <Route path="/liquidaciones/kpis" element={<KpisPage />} />
+                <Route path="/liquidaciones/:id" element={<LiquidacionDetallePage />} />
+                <Route path="/facturas" element={<FacturasPage />} />
+                <Route path="/admin/carreras" element={<CarrerasPage />} />
+                <Route path="/admin/cohortes" element={<CohortesPage />} />
+                <Route path="/admin/materias" element={<MateriasPage />} />
+                <Route path="/admin/usuarios" element={<UsuariosPage />} />
+                <Route path="/admin/auditoria" element={<AuditoriaPage />} />
                 <Route path="/comision" element={<ComisionSelectorPage />} />
                 <Route path="/comision/:materiaId/:cohorteId" element={<ComisionLayout />}>
                   <Route path="calificaciones" element={<CalificacionesPage />} />

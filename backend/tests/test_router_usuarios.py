@@ -398,6 +398,85 @@ class TestUsuariosMeRouter:
         assert len(data) == 1
         assert data[0]["rol"] == "PROFESOR"
 
+    async def test_update_me_perfil(self, db_session, test_settings):
+        from tests.conftest import create_user
+        tenant = await _create_tenant(db_session)
+        user = await create_user(
+            db_session, tenant.id,
+            email=f"update-me-{uuid.uuid4().hex[:8]}@test.com",
+            nombre="Viejo", apellidos="Nombre",
+            banco="Banco Original",
+        )
+        await db_session.commit()
+
+        app = _build_app(db_session, test_settings, user)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.put("/api/usuarios/me", json={
+                "nombre": "Nuevo",
+                "apellidos": "Apellido",
+                "banco": "Banco Nuevo",
+            })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["nombre"] == "Nuevo"
+        assert data["apellidos"] == "Apellido"
+        assert data["banco"] == "Banco Nuevo"
+
+    async def test_update_me_cuil_no_se_modifica(self, db_session, test_settings):
+        from tests.conftest import create_user
+        from app.core.security import decrypt, get_encryption_key
+        from app.core.config import Settings
+
+        settings = Settings(
+            _env_file=None,
+            DATABASE_URL="postgresql+asyncpg://app_user:dev_password@localhost:5432/activia_trace_test",
+            SECRET_KEY="a" * 32,
+            ENCRYPTION_KEY="b" * 32,
+        )
+        enc_key = get_encryption_key(settings)
+
+        tenant = await _create_tenant(db_session)
+        user = await create_user(
+            db_session, tenant.id,
+            email=f"cuil-nochange-{uuid.uuid4().hex[:8]}@test.com",
+            nombre="Original", apellidos="User",
+            cuil="20-12345678-9",
+        )
+        cuil_original = decrypt(user.cuil, enc_key) if user.cuil else None
+        await db_session.commit()
+
+        app = _build_app(db_session, settings, user)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.put("/api/usuarios/me", json={
+                "nombre": "Actualizado",
+            })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["nombre"] == "Actualizado"
+        assert data["cuil"] == cuil_original
+
+        # Verify via GET too
+        resp = await client.get("/api/usuarios/me")
+        assert resp.status_code == 200
+        assert resp.json()["cuil"] == cuil_original
+
+    async def test_update_me_422_extra_fields(self, db_session, test_settings):
+        from tests.conftest import create_user
+        tenant = await _create_tenant(db_session)
+        user = await create_user(
+            db_session, tenant.id,
+            email=f"extra-me-{uuid.uuid4().hex[:8]}@test.com",
+        )
+        await db_session.commit()
+
+        app = _build_app(db_session, test_settings, user)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.put("/api/usuarios/me", json={
+                "nombre": "Test",
+                "cuil": "20-99999999-9",
+            })
+        assert resp.status_code == 422
+
     async def test_get_me_401_without_auth(self, db_session, test_settings):
         from fastapi import FastAPI
         from app.routers.usuarios_me import router as usuarios_me_router

@@ -15,13 +15,21 @@ from app.core.config import Settings
 from app.models.user import User
 
 
-def create_access_token(user: User, settings: Settings, expires_delta: int | None = None) -> str:
+def create_access_token(
+    user: User,
+    settings: Settings,
+    expires_delta: int | None = None,
+    impersonando: bool = False,
+    actor_original_id: str | None = None,
+) -> str:
     """Create a short-lived JWT access token.
 
     Args:
         user: The authenticated user.
         settings: App settings (uses SECRET_KEY and ACCESS_TOKEN_EXPIRE_MINUTES).
         expires_delta: Minutes until expiration. Override for testing (negative = expired).
+        impersonando: Whether this is an impersonation token.
+        actor_original_id: The original user ID when impersonating.
 
     Returns:
         Encoded JWT string.
@@ -38,20 +46,15 @@ def create_access_token(user: User, settings: Settings, expires_delta: int | Non
         "exp": now + delta,
         "iat": now,
         "jti": str(uuid.uuid4()),
+        "impersonando": impersonando,
     }
+    if actor_original_id:
+        payload["actor_original_id"] = actor_original_id
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
 def create_refresh_token(user: User, settings: Settings) -> str:
-    """Create a long-lived JWT refresh token (7 days).
-
-    Args:
-        user: The authenticated user.
-        settings: App settings (uses SECRET_KEY).
-
-    Returns:
-        Encoded JWT string.
-    """
+    """Create a long-lived JWT refresh token (7 days)."""
     now = datetime.now(UTC)
     payload = {
         "sub": user.id,
@@ -65,15 +68,7 @@ def create_refresh_token(user: User, settings: Settings) -> str:
 
 
 def verify_token(token: str, settings: Settings) -> dict | None:
-    """Verify a JWT and return its claims.
-
-    Args:
-        token: The JWT string to verify.
-        settings: App settings (uses SECRET_KEY).
-
-    Returns:
-        Decoded claims dictionary, or None if the token is invalid/expired.
-    """
+    """Verify a JWT and return its claims."""
     try:
         return jwt.decode(
             token,
@@ -86,18 +81,7 @@ def verify_token(token: str, settings: Settings) -> dict | None:
 
 
 def decode_token(token: str, settings: Settings) -> dict:
-    """Decode and verify a JWT, raising on invalid/expired.
-
-    Args:
-        token: The JWT string to verify.
-        settings: App settings (uses SECRET_KEY).
-
-    Returns:
-        Decoded claims dictionary.
-
-    Raises:
-        JWTError: If the token is invalid, expired, or has a bad signature.
-    """
+    """Decode and verify a JWT, raising on invalid/expired."""
     return jwt.decode(
         token,
         settings.SECRET_KEY,
@@ -107,12 +91,5 @@ def decode_token(token: str, settings: Settings) -> dict:
 
 
 def decode_token_unsafe(token: str) -> dict:
-    """Decode a JWT without verifying signature (debugging only).
-
-    Args:
-        token: The JWT string.
-
-    Returns:
-        Decoded claims dictionary (unverified).
-    """
+    """Decode a JWT without verifying signature (debugging only)."""
     return jwt.get_unverified_claims(token)

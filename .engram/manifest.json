@@ -104,6 +104,38 @@
       "sessions": 2,
       "memories": 3,
       "prompts": 2
+    },
+    {
+      "id": "7c3845fb",
+      "created_by": "brian",
+      "created_at": "2026-06-19T08:10:45Z",
+      "sessions": 1,
+      "memories": 5,
+      "prompts": 3
+    },
+    {
+      "id": "85f94ade",
+      "created_by": "brian",
+      "created_at": "2026-06-19T08:19:02Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
+    },
+    {
+      "id": "f3f0b65f",
+      "created_by": "brian",
+      "created_at": "2026-06-19T08:39:09Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 5
+    },
+    {
+      "id": "0fa422ec",
+      "created_by": "brian",
+      "created_at": "2026-06-19T08:53:48Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 1
     }
   ]
 }

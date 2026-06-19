@@ -2,19 +2,32 @@
 
 Endpoints:
     - GET /api/usuarios/me — perfil completo con PII descifrada
+    - PUT /api/usuarios/me — actualizar perfil propio
     - GET /api/usuarios/me/asignaciones — asignaciones activas del usuario
 """
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.core.current_user import get_current_user
 from app.core.dependencies import get_db
-from app.core.security import decrypt, get_encryption_key
+from app.core.security import decrypt, encrypt, get_encryption_key
 from app.models.user import User
 
 router = APIRouter(prefix="/api/usuarios", tags=["usuarios_me"])
+
+
+class PerfilUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nombre: str | None = None
+    apellidos: str | None = None
+    cbu: str | None = None
+    alias_cbu: str | None = None
+    banco: str | None = None
+    regional: str | None = None
 
 
 def _decrypt_user(user: User, enc_key: bytes) -> dict:
@@ -43,6 +56,30 @@ async def get_me(
     settings: Settings = Depends(get_settings),
 ):
     return _decrypt_user(current_user, get_encryption_key(settings))
+
+
+@router.put("/me", response_model=dict)
+async def update_me(
+    request: PerfilUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    enc_key = get_encryption_key(settings)
+
+    update_data = request.model_dump(exclude_none=True)
+
+    for field in ["cbu", "alias_cbu"]:
+        if field in update_data and update_data[field]:
+            update_data[field] = encrypt(update_data[field], enc_key)
+
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+
+    await db.flush()
+    await db.refresh(current_user)
+
+    return _decrypt_user(current_user, enc_key)
 
 
 @router.get("/me/asignaciones", response_model=list[dict])

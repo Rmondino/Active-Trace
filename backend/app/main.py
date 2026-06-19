@@ -86,9 +86,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.routers.coloquios import router as coloquios_router
     from app.routers.avisos import router as avisos_router
     from app.routers.tareas import router as tareas_router
+    from app.routers.impersonacion import router as impersonacion_router
+    from app.routers.admin.auditoria import router as auditoria_router
+    from app.routers.programas import router as programas_router
+    from app.routers.fechas_academicas import router as fechas_academicas_router
+    from app.routers.inbox import router as inbox_router
+    from app.routers.auditoria import router as auditoria_metrics_router
+    from app.routers.salarios import router as salarios_router
+    from app.routers.liquidaciones import router as liquidaciones_router
+    from app.routers.facturas import router as facturas_router
 
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(impersonacion_router)
     app.include_router(estructura_router)
     app.include_router(usuarios_router)
     app.include_router(asignaciones_router)
@@ -104,5 +114,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(coloquios_router)
     app.include_router(avisos_router)
     app.include_router(tareas_router)
+    app.include_router(auditoria_router)
+    app.include_router(programas_router)
+    app.include_router(fechas_academicas_router)
+    app.include_router(inbox_router)
+    app.include_router(auditoria_metrics_router)
+    app.include_router(salarios_router)
+    app.include_router(liquidaciones_router)
+    app.include_router(facturas_router)
 
     return app

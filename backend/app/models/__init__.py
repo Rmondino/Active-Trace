@@ -31,6 +31,13 @@ from app.models.reserva_evaluacion import ReservaEvaluacion
 from app.models.resultado_evaluacion import ResultadoEvaluacion
 from app.models.tarea import Tarea, validar_transicion_tarea, VALID_TRANSITIONS_TAREA
 from app.models.comentario_tarea import ComentarioTarea
+from app.models.liquidacion import (
+    SalarioBase,
+    SalarioPlus,
+    MateriaGrupoPlus,
+    Liquidacion,
+    Factura,
+)
 
 __all__ = [
     "Asignacion",
@@ -65,4 +72,9 @@ __all__ = [
     "ComentarioTarea",
     "validar_transicion_tarea",
     "VALID_TRANSITIONS_TAREA",
+    "SalarioBase",
+    "SalarioPlus",
+    "MateriaGrupoPlus",
+    "Liquidacion",
+    "Factura",
 ]
