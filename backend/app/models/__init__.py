@@ -24,6 +24,8 @@ from app.models.umbral_materia import UmbralMateria
 from app.models.slot_encuentro import SlotEncuentro
 from app.models.instancia_encuentro import InstanciaEncuentro
 from app.models.guardia import Guardia
+from app.models.aviso import Aviso
+from app.models.acknowledgment_aviso import AcknowledgmentAviso
 from app.models.evaluacion import Evaluacion
 from app.models.reserva_evaluacion import ReservaEvaluacion
 from app.models.resultado_evaluacion import ResultadoEvaluacion
@@ -55,4 +57,6 @@ __all__ = [
     "Evaluacion",
     "ReservaEvaluacion",
     "ResultadoEvaluacion",
+    "Aviso",
+    "AcknowledgmentAviso",
 ]

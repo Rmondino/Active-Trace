@@ -567,3 +567,127 @@ class TestGetCurrentUser:
         )
 
         assert response.status_code == 422
+
+
+# ═══════════════════════════════════════════
+# 13.1-13.3  2FA Authenticate (via HTTP)
+# ═══════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+class Test2FAAuthenticate:
+    """POST /api/auth/2fa/authenticate via HTTP."""
+
+    async def test_authenticate_success(
+        self, db_session: AsyncSession, async_client: AsyncClient
+    ):
+        import pyotp
+
+        secret = pyotp.random_base32()
+        tenant = await _create_tenant(db_session)
+        user = await _create_user(
+            db_session, tenant.id, email="2fa-auth-ok@test.com", password="Pass1234!"
+        )
+        user.two_fa_enabled = True
+        user.two_fa_secret = secret
+        await db_session.commit()
+
+        login_resp = await async_client.post("/api/auth/login", json={
+            "email": "2fa-auth-ok@test.com",
+            "password": "Pass1234!",
+        })
+        assert login_resp.status_code == 200
+        session_token = login_resp.json()["session_token"]
+
+        totp = pyotp.TOTP(secret)
+        code = totp.now()
+
+        resp = await async_client.post("/api/auth/2fa/authenticate", json={
+            "session_token": session_token,
+            "code": code,
+        })
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["access_token"] is not None
+        assert data["refresh_token"] is not None
+        assert data["token_type"] == "bearer"
+        assert "id" in data["user"]
+
+    async def test_authenticate_invalid_code_returns_400(
+        self, db_session: AsyncSession, async_client: AsyncClient
+    ):
+        secret = "JBSWY3DPEHPK3PXP"
+        tenant = await _create_tenant(db_session)
+        user = await _create_user(
+            db_session, tenant.id, email="2fa-auth-bad@test.com", password="Pass1234!"
+        )
+        user.two_fa_enabled = True
+        user.two_fa_secret = secret
+        await db_session.commit()
+
+        login_resp = await async_client.post("/api/auth/login", json={
+            "email": "2fa-auth-bad@test.com",
+            "password": "Pass1234!",
+        })
+        assert login_resp.status_code == 200
+        session_token = login_resp.json()["session_token"]
+
+        resp = await async_client.post("/api/auth/2fa/authenticate", json={
+            "session_token": session_token,
+            "code": "000000",
+        })
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Código inválido"
+
+    async def test_authenticate_expired_session_token_returns_401(
+        self, db_session: AsyncSession, async_client: AsyncClient
+    ):
+        from app.core.security import encrypt, get_encryption_key
+
+        settings = _make_settings()
+        enc_key = get_encryption_key(settings)
+        expired_token = create_access_token(
+            User(
+                id=str(uuid.uuid4()),
+                tenant_id=str(uuid.uuid4()),
+                email=encrypt("expired-2fa@test.com", enc_key),
+                email_hash="abc123",
+                nombre="Expired",
+                apellidos="User",
+                dni=encrypt("00000000", enc_key),
+            ),
+            settings,
+            expires_delta=-1,
+        )
+
+        resp = await async_client.post("/api/auth/2fa/authenticate", json={
+            "session_token": expired_token,
+            "code": "123456",
+        })
+
+        assert resp.status_code == 401
+        assert resp.json()["detail"] == "Sesión inválida o expirada"
+
+
+# ═══════════════════════════════════════════
+# 13.4 CORS Middleware
+# ═══════════════════════════════════════════
+
+
+@pytest.mark.asyncio
+class TestCORS:
+    """CORS middleware behaviour."""
+
+    async def test_allows_configured_origin(self, async_client: AsyncClient):
+        resp = await async_client.options(
+            "/api/auth/login",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+        assert resp.status_code <= 400
+        assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"

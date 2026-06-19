@@ -225,6 +225,67 @@ async def logout(db: AsyncSession, refresh_token_str: str) -> bool:
     return True
 
 
+# --- 2FA Authenticate (completes 2FA gate) ---
+
+
+async def authenticate_2fa(
+    db: AsyncSession,
+    session_token: str,
+    code: str,
+    settings: Settings,
+) -> dict:
+    """Verify a TOTP code against the session_token user and issue real tokens.
+
+    Args:
+        db: Database session.
+        session_token: The JWT from the first login step (when 2FA was required).
+        code: 6-digit TOTP code.
+        settings: App settings.
+
+    Returns:
+        dict with access_token, refresh_token, token_type, user or error.
+    """
+    from app.core.jwt import decode_token  # noqa: PLC0415
+
+    # 1. Decode session_token
+    try:
+        payload = decode_token(session_token, settings)
+    except Exception:
+        return {"error": "Sesión inválida o expirada"}
+
+    user_id = payload.get("sub")
+    if not user_id:
+        return {"error": "Sesión inválida o expirada"}
+
+    # 2. Get user
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        return {"error": "Usuario no encontrado"}
+
+    # 3. Verify TOTP code
+    if not user.two_fa_secret:
+        return {"error": "2FA no configurado"}
+
+    totp = pyotp.TOTP(user.two_fa_secret)
+    if not totp.verify(code):
+        return {"error": "Código inválido"}
+
+    # 4. Issue real tokens
+    access = create_access_token(user, settings)
+    refresh = create_refresh_token(user, settings)
+    await _store_refresh_token(db, user.id, refresh, settings)
+
+    return {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "user": {"id": user.id},
+    }
+
+
 # --- 2FA ---
 
 
