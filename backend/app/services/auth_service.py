@@ -97,11 +97,16 @@ async def login(
     refresh = create_refresh_token(user, settings)
     await _store_refresh_token(db, user.id, refresh, settings)
 
+    from app.repositories.asignacion_repository import AsignacionRepository
+    repo = AsignacionRepository(session=db, tenant_id=user.tenant_id)
+    asignaciones = await repo.get_by_usuario(user.tenant_id, user.id, solo_vigentes=True)
+    roles = list({a.rol for a in asignaciones})
+
     return {
         "access_token": access,
         "refresh_token": refresh,
         "token_type": "bearer",
-        "user": {"id": user.id},
+        "user": {"id": user.id, "roles": roles},
     }
 
 

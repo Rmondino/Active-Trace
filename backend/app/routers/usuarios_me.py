@@ -30,7 +30,7 @@ class PerfilUpdate(BaseModel):
     regional: str | None = None
 
 
-def _decrypt_user(user: User, enc_key: bytes) -> dict:
+def _decrypt_user(user: User, enc_key: bytes, roles: list[str] | None = None) -> dict:
     return {
         "id": user.id,
         "nombre": user.nombre,
@@ -46,6 +46,7 @@ def _decrypt_user(user: User, enc_key: bytes) -> dict:
         "legajo_profesional": user.legajo_profesional,
         "facturador": user.facturador,
         "estado": user.estado,
+        "roles": roles or [],
     }
 
 
@@ -55,7 +56,14 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    return _decrypt_user(current_user, get_encryption_key(settings))
+    from app.repositories.asignacion_repository import AsignacionRepository
+
+    repo = AsignacionRepository(session=db, tenant_id=current_user.tenant_id)
+    asignaciones = await repo.get_by_usuario(
+        current_user.tenant_id, current_user.id, solo_vigentes=True
+    )
+    roles = list({a.rol for a in asignaciones})
+    return _decrypt_user(current_user, get_encryption_key(settings), roles=roles)
 
 
 @router.put("/me", response_model=dict)

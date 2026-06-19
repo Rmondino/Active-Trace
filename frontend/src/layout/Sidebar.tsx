@@ -1,11 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useAuth } from '@/shared/hooks/useAuth'
 
-import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+interface NavItem {
+  label: string
+  path: string
+  roles?: string[]
+}
 
 interface NavGroup {
   label: string
-  items: { label: string; path: string }[]
+  items: NavItem[]
+  roles?: string[]
 }
 
 const navGroups: NavGroup[] = [
@@ -26,6 +32,7 @@ const navGroups: NavGroup[] = [
   },
   {
     label: 'FINANZAS',
+    roles: ['FINANZAS', 'ADMIN'],
     items: [
       { label: 'Grilla Salarial', path: '/liquidaciones/grilla' },
       { label: 'Liquidaciones', path: '/liquidaciones' },
@@ -35,6 +42,7 @@ const navGroups: NavGroup[] = [
   },
   {
     label: 'ADMIN',
+    roles: ['ADMIN'],
     items: [
       { label: 'Carreras', path: '/admin/carreras' },
       { label: 'Cohortes', path: '/admin/cohortes' },
@@ -48,6 +56,19 @@ const navGroups: NavGroup[] = [
 export function Sidebar() {
   const location = useLocation()
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const { user } = useAuth()
+
+  const userRoles = useMemo(() => {
+    if (!user?.roles) return []
+    return user.roles.map((r: string) => r.toUpperCase())
+  }, [user])
+
+  const visibleGroups = useMemo(() => {
+    return navGroups.filter(g => {
+      if (!g.roles) return true
+      return g.roles.some(r => userRoles.includes(r))
+    })
+  }, [userRoles])
 
   const toggleGroup = (label: string) => {
     setCollapsedGroups(prev => {
@@ -68,7 +89,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navGroups.map((group) => {
+        {visibleGroups.map((group) => {
           const groupActive = isGroupActive(group.items)
           const collapsed = collapsedGroups.has(group.label)
 

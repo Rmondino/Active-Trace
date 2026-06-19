@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db, require_permission
 from app.core.current_user import get_current_user
+from app.models.asignacion import Asignacion
 from app.models.user import User
 
 router = APIRouter(prefix="/api/asignaciones", tags=["asignaciones"])
@@ -84,22 +85,32 @@ async def list_asignaciones(
     if solo_vigentes and not any([usuario_id, materia_id, rol]):
         asignaciones = await repo.get_vigentes(tenant_id)
 
-    return [
-        {
+    def _to_response(a: Asignacion) -> dict:
+        from app.models.materia import Materia
+        from app.models.carrera import Carrera
+        from app.models.cohorte import Cohorte
+
+        materia_nombre = a.materia.nombre if a.materia else ""
+        carrera_nombre = a.carrera.nombre if a.carrera else ""
+        cohorte_nombre = a.cohorte.nombre if a.cohorte else ""
+        return {
             "id": a.id,
             "usuario_id": a.usuario_id,
             "rol": a.rol,
             "materia_id": a.materia_id,
+            "materia_nombre": materia_nombre,
             "carrera_id": a.carrera_id,
+            "carrera_nombre": carrera_nombre,
             "cohorte_id": a.cohorte_id,
+            "cohorte_nombre": cohorte_nombre,
             "comisiones": a.comisiones,
             "responsable_id": a.responsable_id,
             "desde": str(a.desde),
             "hasta": str(a.hasta) if a.hasta else None,
             "estado_vigencia": _compute_estado_vigencia(a.desde, a.hasta),
         }
-        for a in asignaciones
-    ]
+
+    return [_to_response(a) for a in asignaciones]
 
 
 @router.get("/{asignacion_id}", response_model=dict)

@@ -22,6 +22,7 @@ import { LiquidacionesPage } from '@/features/liquidaciones/pages/LiquidacionesP
 import { LiquidacionDetallePage } from '@/features/liquidaciones/pages/LiquidacionDetallePage'
 import { KpisPage } from '@/features/liquidaciones/pages/KpisPage'
 import { FacturasPage } from '@/features/facturas/pages/FacturasPage'
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { CarrerasPage } from '@/features/admin/pages/CarrerasPage'
 import { CohortesPage } from '@/features/admin/pages/CohortesPage'
 import { MateriasPage } from '@/features/admin/pages/MateriasPage'
@@ -51,7 +52,7 @@ function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/" element={<div>Dashboard</div>} />
+                <Route path="/" element={<DashboardPage />} />
                 <Route path="/2fa/setup" element={<TwoFASetupPage />} />
                 <Route path="/perfil" element={<PerfilPage />} />
                 <Route path="/inbox" element={<InboxPage />} />

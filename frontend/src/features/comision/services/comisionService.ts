@@ -2,6 +2,6 @@ import api from '@/shared/services/api'
 import type { Asignacion } from '../types/comision'
 
 export const comisionService = {
-  getAsignaciones: () =>
-    api.get<Asignacion[]>('/api/comisiones/asignadas').then(r => r.data),
+  getAsignaciones: (usuarioId: string) =>
+    api.get<Asignacion[]>(`/api/asignaciones?usuario_id=${usuarioId}`).then(r => r.data),
 }

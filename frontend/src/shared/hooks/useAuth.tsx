@@ -3,6 +3,7 @@ import {
   useContext,
   useReducer,
   useEffect,
+  useState,
   type Dispatch,
   type ReactNode,
 } from 'react'
@@ -19,9 +20,19 @@ interface AuthContextValue {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
+  loading: boolean
   login: (accessToken: string, refreshToken: string, user: User) => void
   logout: () => void
   setTokens: (access: string, refresh: string) => void
+}
+
+function loadUser(): User | null {
+  try {
+    const raw = localStorage.getItem('auth_user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
 }
 
 const initialState: AuthState = {
@@ -34,6 +45,7 @@ const initialState: AuthState = {
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'LOGIN':
+      localStorage.setItem('auth_user', JSON.stringify(action.payload.user))
       return {
         isAuthenticated: true,
         user: action.payload.user,
@@ -41,6 +53,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         refreshToken: action.payload.refreshToken,
       }
     case 'LOGOUT':
+      localStorage.removeItem('auth_user')
       return { isAuthenticated: false, user: null, accessToken: null, refreshToken: null }
     case 'SET_TOKENS':
       return {
@@ -54,16 +67,18 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [loading, setLoading] = useState(true)
   const [state, dispatch]: [AuthState, Dispatch<AuthAction>] = useReducer(
     authReducer,
     initialState,
     () => {
       const accessToken = localStorage.getItem('access_token')
       const refreshToken = localStorage.getItem('refresh_token')
-      if (accessToken && refreshToken) {
+      const user = loadUser()
+      if (accessToken && refreshToken && user) {
         return {
           isAuthenticated: true,
-          user: null,
+          user,
           accessToken,
           refreshToken,
         }
@@ -71,6 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return initialState
     },
   )
+
+  useEffect(() => {
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
     if (state.accessToken && state.refreshToken) {
@@ -100,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: state.user,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        loading,
         login,
         logout,
         setTokens,
