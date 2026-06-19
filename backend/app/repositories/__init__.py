@@ -15,6 +15,8 @@ from app.repositories.guardia_repository import GuardiaRepository
 from app.repositories.evaluacion_repository import EvaluacionRepository
 from app.repositories.reserva_repository import ReservaRepository
 from app.repositories.resultado_repository import ResultadoRepository
+from app.repositories.tarea_repository import TareaRepository
+from app.repositories.comentario_repository import ComentarioRepository
 
 __all__ = [
     "AsignacionRepository",
@@ -34,4 +36,6 @@ __all__ = [
     "EvaluacionRepository",
     "ReservaRepository",
     "ResultadoRepository",
+    "TareaRepository",
+    "ComentarioRepository",
 ]

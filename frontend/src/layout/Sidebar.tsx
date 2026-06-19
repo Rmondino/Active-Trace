@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 const navItems = [
   { label: 'Dashboard', path: '/' },
+  { label: 'Mis Comisiones', path: '/comision' },
   { label: 'Configurar 2FA', path: '/2fa/setup' },
 ]
 
