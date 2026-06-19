@@ -21,6 +21,9 @@ from app.models.audit_log import AuditLog
 from app.models.calificacion import Calificacion
 from app.models.comunicacion import Comunicacion
 from app.models.umbral_materia import UmbralMateria
+from app.models.slot_encuentro import SlotEncuentro
+from app.models.instancia_encuentro import InstanciaEncuentro
+from app.models.guardia import Guardia
 
 __all__ = [
     "Asignacion",
@@ -43,4 +46,7 @@ __all__ = [
     "TimeStampedMixin",
     "User",
     "VersionPadron",
+    "SlotEncuentro",
+    "InstanciaEncuentro",
+    "Guardia",
 ]
