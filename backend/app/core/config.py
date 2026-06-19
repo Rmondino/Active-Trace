@@ -52,6 +52,42 @@ class Settings(BaseSettings):
         description="JWT access token expiration in minutes",
     )
 
+    # ── Email / SMTP (optional) ──
+    EMAIL_SMTP_HOST: str = Field(
+        default="localhost",
+        description="SMTP server hostname",
+    )
+    EMAIL_SMTP_PORT: int = Field(
+        default=587,
+        description="SMTP server port",
+    )
+    EMAIL_SMTP_USERNAME: str | None = Field(
+        default=None,
+        description="SMTP username",
+    )
+    EMAIL_SMTP_PASSWORD: str | None = Field(
+        default=None,
+        description="SMTP password",
+    )
+    EMAIL_FROM_ADDR: str = Field(
+        default="noreply@activia-trace.com",
+        description="From address for outgoing emails",
+    )
+    EMAIL_USE_TLS: bool = Field(
+        default=True,
+        description="Use TLS for SMTP connection",
+    )
+
+    # ── Moodle Web Services (optional) ──
+    MOODLE_BASE_URL: str | None = Field(
+        default=None,
+        description="Base URL for Moodle Web Services",
+    )
+    MOODLE_TOKEN: str | None = Field(
+        default=None,
+        description="Web service token for Moodle API",
+    )
+
     # ── OpenTelemetry (optional) ──
     OTEL_SERVICE_NAME: str | None = Field(
         default=None,
