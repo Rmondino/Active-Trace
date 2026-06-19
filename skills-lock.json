@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "frontend-design-ui-ux": {
+      "source": "ulpi-io/skills",
+      "sourceType": "github",
+      "skillPath": "frontend-design-ui-ux/SKILL.md",
+      "computedHash": "30f899e46aa0bbfeec9aa29a9016dfff8c58c30fbd1dccf138d826e342028c6b"
+    },
     "kb-creator": {
       "source": "JuanCruzRobledo/kb-creator",
       "sourceType": "github",
